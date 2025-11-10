@@ -52,6 +52,7 @@ As soon as HomeAssistant is restarted, you can proceed with __component setup__.
 | `Refoss Smart Energy Monitor, EM16` | `v3.1.7 and above` |
 
 ## Tips
+- **HA and device need to be on the same network**.
 - WMware installation HAOS deployment HomeAssistant service, please set the virtual machine network to bridge.
 - Docker installation of HomeAssistant service, please set the container's network to host.
 - Refoss LAN and Refoss(core integration) cannot be used simultaneously. If you plan to use Refoss LAN, please remove Refoss first.
