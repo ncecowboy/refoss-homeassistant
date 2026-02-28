@@ -68,6 +68,12 @@
       },
       "this_month_energy_returned": {
         "name": "{channel_name} This Month Energy Returned"
+      },
+      "today_energy": {
+        "name": "{channel_name} Today Energy"
+      },
+      "week_energy": {
+        "name": "{channel_name} This Week Energy"
       }
     }
   }

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from homeassistant.components.sensor import (
@@ -27,6 +28,8 @@ from .refoss_ha.controller.em_rpc import EmRpcMix
 from .refoss_ha.controller.switch_rpc import SwitchRpcMix
 from .coordinator import RefossDataUpdateCoordinator, RefossConfigEntry
 
+_LOGGER = logging.getLogger(__name__)
+
 
 @dataclass(frozen=True)
 class RefossSensorEntityDescription(SensorEntityDescription):
@@ -34,18 +37,6 @@ class RefossSensorEntityDescription(SensorEntityDescription):
 
     subkey: str | None = None
     fn: Callable[[float], float] | None = None
-
-
-DEVICETYPE_SENSOR: dict[str, str] = {
-    "em06": SENSOR_EM,
-    "em16": SENSOR_EM,
-    # New RPC protocol devices
-    "em06p": SENSOR_EM_RPC,
-    "em16p": SENSOR_EM_RPC,
-    "r11": SENSOR_SWITCH_RPC,
-    "r21": SENSOR_SWITCH_RPC,
-    "p11s": SENSOR_SWITCH_RPC,
-}
 
 SENSORS: dict[str, tuple[RefossSensorEntityDescription, ...]] = {
     SENSOR_EM: (
@@ -106,6 +97,26 @@ SENSORS: dict[str, tuple[RefossSensorEntityDescription, ...]] = {
             suggested_display_precision=2,
             subkey="mConsume",
             fn=lambda x: abs(x) if x < 0 else 0,
+        ),
+        RefossSensorEntityDescription(
+            key="today_energy",
+            translation_key="today_energy",
+            device_class=SensorDeviceClass.ENERGY,
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+            suggested_display_precision=2,
+            subkey="today",
+            fn=lambda x: max(0, x),
+        ),
+        RefossSensorEntityDescription(
+            key="week_energy",
+            translation_key="week_energy",
+            device_class=SensorDeviceClass.ENERGY,
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+            suggested_display_precision=2,
+            subkey="week",
+            fn=lambda x: max(0, x),
         ),
     ),
     # New RPC protocol – Em.Status.Get returns milli-units (mA, mV, mW; pf ×1000; kWh for energy)
@@ -219,7 +230,19 @@ async def async_setup_entry(
 
     def init_device(device: ElectricityXMix | EmRpcMix | SwitchRpcMix):
         """Register the device."""
-        sensor_type = DEVICETYPE_SENSOR.get(device.device_type, "")
+        if isinstance(device, ElectricityXMix):
+            sensor_type = SENSOR_EM
+        elif isinstance(device, EmRpcMix):
+            sensor_type = SENSOR_EM_RPC
+        elif isinstance(device, SwitchRpcMix):
+            sensor_type = SENSOR_SWITCH_RPC
+        else:
+            _LOGGER.warning(
+                "Unrecognised device class %s for %s; no sensors will be created",
+                type(device).__name__,
+                device.device_type,
+            )
+            sensor_type = ""
         descriptions: tuple[RefossSensorEntityDescription, ...] = SENSORS.get(
             sensor_type, ()
         )
