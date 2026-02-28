@@ -13,7 +13,7 @@ import time
 LOGGER = logging.getLogger(__name__)
 from typing import Union
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientTimeout
 
 from .enums import Namespace
 from .util import BaseDictPayload
@@ -79,7 +79,7 @@ class DeviceInfo(BaseDictPayload):
             async with ClientSession() as session, session.post(
                 path,
                 json=json.loads(message.decode()),
-                timeout=timeout,
+                timeout=ClientTimeout(total=timeout),
             ) as response:
                 data = await response.json()
                 if data is not None:
@@ -90,13 +90,15 @@ class DeviceInfo(BaseDictPayload):
                         return data
                 return None
         except asyncio.TimeoutError:
+            namespace_str = namespace.value if isinstance(namespace, Namespace) else namespace
             LOGGER.debug(
-                f"Http timeoutError,ip:{self.inner_ip}, device_type:{self.device_type}, namespace:{namespace.value}"
+                f"Http timeoutError,ip:{self.inner_ip}, device_type:{self.device_type}, namespace:{namespace_str}"
             )
             raise DeviceTimeoutError
         except Exception as e:
+            namespace_str = namespace.value if isinstance(namespace, Namespace) else namespace
             LOGGER.debug(
-                f"Http fail: {e}, ip:{self.inner_ip}, device_type:{self.device_type},namespace:{namespace.value}"
+                f"Http fail: {e}, ip:{self.inner_ip}, device_type:{self.device_type},namespace:{namespace_str}"
             )
             raise RefossError("Device connection failed") from e
 

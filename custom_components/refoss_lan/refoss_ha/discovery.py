@@ -11,17 +11,22 @@ _LOGGER = logging.getLogger(__name__)
 
 def socket_init() -> socket.socket:
     """socket_init."""
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind(("", 9989))
-    return sock
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.bind(("", 9989))
+        return sock
+    except OSError as err:
+        raise SocketError(err) from err
 
 
 class Discovery(asyncio.DatagramProtocol):
     """Socket server."""
 
     def __init__(self) -> None:
-        self.device_info = None
-        self._loop = asyncio.get_event_loop()
+        self.device_info: dict | None = None
+        self.sock: socket.socket | None = None
+        self.transport: asyncio.transports.DatagramTransport | None = None
+        self._loop = asyncio.get_running_loop()
 
     def connection_made(self, transport: asyncio.transports.DatagramTransport) -> None:
         """Handle connection made."""
