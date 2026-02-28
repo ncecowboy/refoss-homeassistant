@@ -20,9 +20,11 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
-from .const import CHANNEL_DISPLAY_NAME, SENSOR_EM
+from .const import CHANNEL_DISPLAY_NAME, SENSOR_EM, SENSOR_EM_RPC, SENSOR_SWITCH_RPC
 from .entity import RefossEntity
 from .refoss_ha.controller.electricity import ElectricityXMix
+from .refoss_ha.controller.em_rpc import EmRpcMix
+from .refoss_ha.controller.switch_rpc import SwitchRpcMix
 from .coordinator import RefossDataUpdateCoordinator, RefossConfigEntry
 
 
@@ -37,6 +39,12 @@ class RefossSensorEntityDescription(SensorEntityDescription):
 DEVICETYPE_SENSOR: dict[str, str] = {
     "em06": SENSOR_EM,
     "em16": SENSOR_EM,
+    # New RPC protocol devices
+    "em06p": SENSOR_EM_RPC,
+    "em16p": SENSOR_EM_RPC,
+    "r11": SENSOR_SWITCH_RPC,
+    "r21": SENSOR_SWITCH_RPC,
+    "p11s": SENSOR_SWITCH_RPC,
 }
 
 SENSORS: dict[str, tuple[RefossSensorEntityDescription, ...]] = {
@@ -100,6 +108,97 @@ SENSORS: dict[str, tuple[RefossSensorEntityDescription, ...]] = {
             fn=lambda x: abs(x) if x < 0 else 0,
         ),
     ),
+    # New RPC protocol – Em.Status.Get returns SI units (A, V, W, kWh)
+    SENSOR_EM_RPC: (
+        RefossSensorEntityDescription(
+            key="power",
+            translation_key="power",
+            device_class=SensorDeviceClass.POWER,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            suggested_display_precision=2,
+            subkey="power",
+        ),
+        RefossSensorEntityDescription(
+            key="voltage",
+            translation_key="voltage",
+            device_class=SensorDeviceClass.VOLTAGE,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+            suggested_display_precision=2,
+            subkey="voltage",
+        ),
+        RefossSensorEntityDescription(
+            key="current",
+            translation_key="current",
+            device_class=SensorDeviceClass.CURRENT,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+            suggested_display_precision=3,
+            subkey="current",
+        ),
+        RefossSensorEntityDescription(
+            key="factor",
+            translation_key="power_factor",
+            device_class=SensorDeviceClass.POWER_FACTOR,
+            state_class=SensorStateClass.MEASUREMENT,
+            suggested_display_precision=2,
+            subkey="pf",
+        ),
+        RefossSensorEntityDescription(
+            key="energy",
+            translation_key="this_month_energy",
+            device_class=SensorDeviceClass.ENERGY,
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+            suggested_display_precision=3,
+            subkey="month_energy",
+            fn=lambda x: max(0.0, x),
+        ),
+    ),
+    # New RPC protocol – Switch.Status.Get energy data (mW, mV, mA, Wh)
+    SENSOR_SWITCH_RPC: (
+        RefossSensorEntityDescription(
+            key="power",
+            translation_key="power",
+            device_class=SensorDeviceClass.POWER,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            suggested_display_precision=2,
+            subkey="apower",
+            fn=lambda x: x / 1000.0,
+        ),
+        RefossSensorEntityDescription(
+            key="voltage",
+            translation_key="voltage",
+            device_class=SensorDeviceClass.VOLTAGE,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfElectricPotential.MILLIVOLT,
+            suggested_display_precision=2,
+            suggested_unit_of_measurement=UnitOfElectricPotential.VOLT,
+            subkey="voltage",
+        ),
+        RefossSensorEntityDescription(
+            key="current",
+            translation_key="current",
+            device_class=SensorDeviceClass.CURRENT,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfElectricCurrent.MILLIAMPERE,
+            suggested_display_precision=2,
+            suggested_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+            subkey="current",
+        ),
+        RefossSensorEntityDescription(
+            key="energy",
+            translation_key="this_month_energy",
+            device_class=SensorDeviceClass.ENERGY,
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+            suggested_display_precision=2,
+            subkey="month_consumption",
+            fn=lambda x: max(0, x),
+        ),
+    ),
 }
 
 
@@ -111,10 +210,10 @@ async def async_setup_entry(
     """Set up the Refoss device from a config entry."""
     coordinator = config_entry.runtime_data
     device = coordinator.device
-    if not isinstance(device, ElectricityXMix):
+    if not isinstance(device, (ElectricityXMix, EmRpcMix, SwitchRpcMix)):
         return
 
-    def init_device(device: ElectricityXMix):
+    def init_device(device: ElectricityXMix | EmRpcMix | SwitchRpcMix):
         """Register the device."""
         sensor_type = DEVICETYPE_SENSOR.get(device.device_type, "")
         descriptions: tuple[RefossSensorEntityDescription, ...] = SENSORS.get(
@@ -149,7 +248,7 @@ class RefossSensor(RefossEntity, SensorEntity):
         self.entity_description = description
         self._attr_unique_id = f"{super().unique_id}{description.key}"
         device_type = coordinator.device.device_type
-        channel_name = CHANNEL_DISPLAY_NAME[device_type][channel]
+        channel_name = CHANNEL_DISPLAY_NAME.get(device_type, {}).get(channel, str(channel))
         self._attr_translation_placeholders = {"channel_name": channel_name}
 
     @property

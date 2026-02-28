@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Union
 
 from ..enums import Namespace
 from ..device import DeviceInfo
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class BaseDevice:
@@ -24,11 +27,25 @@ class BaseDevice:
         self.port = device_info.port
         self.mac = device_info.mac
         self.sub_type = device_info.sub_type
-        self.channels = (
+        raw_channels = (
             device_info.channels
             if isinstance(device_info.channels, list)
             else json.loads(device_info.channels)
         )
+        if raw_channels and isinstance(raw_channels[0], dict):
+            self.channels = []
+            for i, c in enumerate(raw_channels):
+                ch = c.get("channel")
+                if ch is None:
+                    _LOGGER.debug(
+                        "Channel dict missing 'channel' key at index %d, using index as fallback: %s",
+                        i,
+                        c,
+                    )
+                    ch = i
+                self.channels.append(int(ch))
+        else:
+            self.channels = [int(c) for c in raw_channels] if raw_channels else []
 
     async def async_handle_update(self):
         """update device state."""

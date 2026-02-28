@@ -8,8 +8,9 @@ from homeassistant.const import Platform, CONF_HOST
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 
-from .refoss_ha.device_manager import async_build_base_device
+from .refoss_ha.device_manager import async_build_base_device, async_build_rpc_device
 from .refoss_ha.device import DeviceInfo
+from .refoss_ha.device_rpc import DeviceInfoRpc
 from .refoss_ha.exceptions import DeviceTimeoutError, InvalidMessage, RefossError
 
 from .refoss_ha.controller.device import BaseDevice
@@ -34,8 +35,14 @@ async def async_setup_entry(
         )
         return False
     try:
-        device: DeviceInfo = DeviceInfo.from_dict(data["device"])
-        base_device: BaseDevice = await async_build_base_device(device_info=device)
+        raw_device = data["device"]
+        protocol = raw_device.get("protocol", "lan")
+        if protocol == "rpc":
+            device_info_rpc: DeviceInfoRpc = DeviceInfoRpc.from_dict(raw_device)
+            base_device: BaseDevice = await async_build_rpc_device(device_info=device_info_rpc)
+        else:
+            device: DeviceInfo = DeviceInfo.from_dict(raw_device)
+            base_device = await async_build_base_device(device_info=device)
     except DeviceTimeoutError as err:
         raise ConfigEntryNotReady(f"Timed out connecting to {data[CONF_HOST]}") from err
     except InvalidMessage as err:
@@ -45,6 +52,11 @@ async def async_setup_entry(
             f"Device {config_entry.title} network connection failed, please check the network and try again"
         )
         raise ConfigEntryNotReady(repr(err)) from err
+    except Exception as err:
+        _LOGGER.exception(
+            "Unexpected error setting up %s", config_entry.title
+        )
+        raise ConfigEntryNotReady("Unexpected error setting up device") from err
 
     coordinator = RefossDataUpdateCoordinator(hass, config_entry, base_device)
     await coordinator.async_config_entry_first_refresh()

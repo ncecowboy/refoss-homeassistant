@@ -13,6 +13,7 @@ from homeassistant.const import (
     CONF_MAC,
 )
 from .refoss_ha.discovery import Discovery
+from .refoss_ha.device_rpc import DeviceInfoRpc
 from .refoss_ha.exceptions import SocketError
 from .const import _LOGGER, UPDATE_INTERVAL
 
@@ -104,7 +105,20 @@ class RefossConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 async def start_scan_device(host: str) -> dict | None:
-    """Scan device on the host."""
+    """Scan device on the host.
+
+    Tries the new Refoss Open API (RPC) first; falls back to the
+    legacy UDP discovery for older devices.
+    """
+    # 1. Try new RPC protocol
+    rpc_device = await DeviceInfoRpc.async_probe(host)
+    if rpc_device is not None:
+        _LOGGER.debug("Discovered RPC device at %s: %s", host, rpc_device.dev_name)
+        d = rpc_device.to_dict()
+        d[CONF_MAC] = rpc_device.mac
+        return d
+
+    # 2. Fall back to legacy UDP discovery
     device = None
     discovery_server = Discovery()
     try:

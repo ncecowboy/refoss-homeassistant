@@ -50,6 +50,9 @@ class RefossDataUpdateCoordinator(DataUpdateCoordinator[None]):
         except RefossError as e:
             _LOGGER.debug(f"Device connection error: {e!r}")
             raise UpdateFailed("Device connect fail") from e
+        except Exception as e:
+            _LOGGER.debug(f"Unexpected device update error: {e!r}")
+            raise UpdateFailed("Unexpected update error") from e
 
     def _update_success(self, success: bool) -> None:
         """Update the success state."""

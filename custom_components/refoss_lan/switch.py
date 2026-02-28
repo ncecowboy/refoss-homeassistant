@@ -10,6 +10,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .entity import RefossEntity
 from .refoss_ha.controller.toggle import ToggleXMix
+from .refoss_ha.controller.switch_rpc import SwitchRpcMix
 from .coordinator import RefossDataUpdateCoordinator, RefossConfigEntry
 
 
@@ -22,10 +23,10 @@ async def async_setup_entry(
     coordinator = config_entry.runtime_data
     device = coordinator.device
 
-    if not isinstance(device, ToggleXMix):
+    if not isinstance(device, (ToggleXMix, SwitchRpcMix)):
         return
 
-    def init_device(device: ToggleXMix):
+    def init_device(device: ToggleXMix | SwitchRpcMix):
         """Register the device."""
         new_entities = []
         for channel in device.channels:

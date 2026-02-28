@@ -41,7 +41,7 @@ class ElectricityXMix(BaseDevice):
         )
         if res is not None:
             data = res.get("payload", {})
-            payload = data["electricity"]
+            payload = data.get("electricity")
             if payload is None:
                 _LOGGER.debug(
                     f"{data} could not find 'electricity' attribute in push notification data"
