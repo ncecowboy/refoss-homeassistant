@@ -11,6 +11,10 @@ from ..exceptions import DeviceTimeoutError
 _LOGGER = logging.getLogger(__name__)
 
 
+# Fields the RPC Em.Status.Get response is expected to include.
+_EXPECTED_EM_RPC_KEYS = {"power_factor", "month_energy"}
+
+
 class EmRpcMix(BaseDevice):
     """Energy-monitor controller using the new Refoss Open API.
 
@@ -30,6 +34,7 @@ class EmRpcMix(BaseDevice):
         self.device = device
         # channel_id → status dict from Em.Status.Get
         self.em_status: dict[int, dict] = {}
+        self._em_keys_logged = False
         super().__init__(device)
 
     # ------------------------------------------------------------------
@@ -53,10 +58,32 @@ class EmRpcMix(BaseDevice):
             if res is not None:
                 # HTTP GET may or may not wrap data in a "result" key
                 data = res.get("result", res)
-                for entry in data.get("status", []):
+                entries = data.get("status", [])
+                for entry in entries:
                     ch = entry.get("id")
                     if ch is not None:
                         self.em_status[ch] = entry
+                if entries and not self._em_keys_logged:
+                    self._em_keys_logged = True
+                    available = set(entries[0].keys()) - {"id"}
+                    missing = _EXPECTED_EM_RPC_KEYS - available
+                    if missing:
+                        _LOGGER.warning(
+                            "Device %s (%s) does not provide %s in its "
+                            "Em.Status.Get response; those sensors will show "
+                            "as Unknown. Available fields: %s",
+                            self.inner_ip,
+                            self.device_type,
+                            sorted(missing),
+                            sorted(available),
+                        )
+                    else:
+                        _LOGGER.debug(
+                            "Device %s (%s) Em.Status.Get fields: %s",
+                            self.inner_ip,
+                            self.device_type,
+                            sorted(available),
+                        )
         except DeviceTimeoutError:
             raise
         except Exception as exc:  # noqa: BLE001

@@ -11,6 +11,10 @@ from ..exceptions import DeviceTimeoutError
 _LOGGER = logging.getLogger(__name__)
 
 
+# Fields the RPC Switch.Status.Get response is expected to include.
+_EXPECTED_SWITCH_RPC_KEYS = {"apower", "voltage", "current", "month_consumption"}
+
+
 class SwitchRpcMix(BaseDevice):
     """Switch controller using the new Refoss Open API.
 
@@ -24,6 +28,7 @@ class SwitchRpcMix(BaseDevice):
         self.device = device
         # channel_id → status dict from Switch.Status.Get
         self.switch_status: dict[int, dict] = {}
+        self._switch_keys_logged = False
         super().__init__(device)
 
     # ------------------------------------------------------------------
@@ -53,6 +58,27 @@ class SwitchRpcMix(BaseDevice):
                     # HTTP GET may or may not wrap data in a "result" key
                     data = res.get("result", res)
                     self.switch_status[channel] = data
+                    if not self._switch_keys_logged:
+                        self._switch_keys_logged = True
+                        available = set(data.keys())
+                        missing = _EXPECTED_SWITCH_RPC_KEYS - available
+                        if missing:
+                            _LOGGER.warning(
+                                "Device %s (%s) does not provide %s in its "
+                                "Switch.Status.Get response; those sensors will show "
+                                "as Unknown. Available fields: %s",
+                                self.inner_ip,
+                                self.device_type,
+                                sorted(missing),
+                                sorted(available),
+                            )
+                        else:
+                            _LOGGER.debug(
+                                "Device %s (%s) Switch.Status.Get fields: %s",
+                                self.inner_ip,
+                                self.device_type,
+                                sorted(available),
+                            )
             except DeviceTimeoutError:
                 raise
             except Exception as exc:  # noqa: BLE001
