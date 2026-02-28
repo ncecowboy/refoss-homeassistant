@@ -8,6 +8,8 @@ from typing import Final
 from homeassistant.const import Platform, CONF_HOST
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
 
 from .refoss_ha.device_manager import async_build_base_device, async_build_rpc_device
 from .refoss_ha.device import DeviceInfo
@@ -15,7 +17,7 @@ from .refoss_ha.device_rpc import DeviceInfoRpc
 from .refoss_ha.exceptions import DeviceTimeoutError, InvalidMessage, RefossError
 
 from .refoss_ha.controller.device import BaseDevice
-from .const import CONF_LOG_LEVEL, DOMAIN, LOG_LEVEL_DEFAULT, LOG_LEVEL_OPTIONS, _LOGGER
+from .const import CHANNEL_DISPLAY_NAME, CONF_LOG_LEVEL, DOMAIN, LOG_LEVEL_DEFAULT, LOG_LEVEL_OPTIONS, _LOGGER
 from .coordinator import RefossDataUpdateCoordinator, RefossConfigEntry
 
 PLATFORMS: Final = [
@@ -85,6 +87,23 @@ async def async_setup_entry(
     )
     await coordinator.async_config_entry_first_refresh()
     config_entry.runtime_data = coordinator
+
+    # For multi-channel EM devices each channel is represented as a sub-device.
+    # Register the parent (integration-level) device explicitly so that the
+    # sub-devices can reference it via ``via_device``.
+    if base_device.device_type in CHANNEL_DISPLAY_NAME:
+        device_registry = dr.async_get(hass)
+        device_registry.async_get_or_create(
+            config_entry_id=config_entry.entry_id,
+            identifiers={(DOMAIN, base_device.mac)},
+            connections={(CONNECTION_NETWORK_MAC, base_device.mac)},
+            manufacturer="Refoss",
+            name=base_device.device_type,
+            model=base_device.device_type,
+            sw_version=base_device.fmware_version,
+            hw_version=base_device.hdware_version,
+        )
+
     config_entry.async_on_unload(
         config_entry.add_update_listener(_async_update_options)
     )

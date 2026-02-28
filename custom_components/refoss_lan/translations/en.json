@@ -74,6 +74,30 @@
             },
             "week_energy": {
                 "name": "{channel_name} This Week Energy"
+            },
+            "em_power": {
+                "name": "Power"
+            },
+            "em_voltage": {
+                "name": "Voltage"
+            },
+            "em_current": {
+                "name": "Current"
+            },
+            "em_power_factor": {
+                "name": "Power Factor"
+            },
+            "em_this_month_energy": {
+                "name": "This Month Energy"
+            },
+            "em_this_month_energy_returned": {
+                "name": "This Month Energy Returned"
+            },
+            "em_today_energy": {
+                "name": "Today Energy"
+            },
+            "em_week_energy": {
+                "name": "This Week Energy"
             }
         }
     }
