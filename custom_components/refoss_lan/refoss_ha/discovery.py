@@ -11,12 +11,13 @@ _LOGGER = logging.getLogger(__name__)
 
 def socket_init() -> socket.socket:
     """socket_init."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind(("", 9989))
-        return sock
     except OSError as err:
+        sock.close()
         raise SocketError(err) from err
+    return sock
 
 
 class Discovery(asyncio.DatagramProtocol):
