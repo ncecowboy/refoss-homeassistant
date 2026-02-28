@@ -237,17 +237,18 @@ async def async_setup_entry(
         """Register the device."""
         if isinstance(device, ElectricityXMix):
             sensor_type = SENSOR_EM
-            use_sub_devices = True
         elif isinstance(device, EmRpcMix):
             sensor_type = SENSOR_EM_RPC
-            use_sub_devices = True
         else:
             sensor_type = SENSOR_SWITCH_RPC
-            use_sub_devices = False
         descriptions: tuple[RefossSensorEntityDescription, ...] = SENSORS.get(
             sensor_type, ()
         )
         device_type = device.device_type
+        # Only create per-channel sub-devices for device types that have a known
+        # channel name mapping; this ensures the parent device registered in
+        # __init__.py always exists before sub-devices reference it via via_device.
+        use_sub_devices = device_type in CHANNEL_DISPLAY_NAME
         async_add_entities(
             RefossSensor(
                 coordinator=coordinator,
