@@ -4,12 +4,15 @@ from __future__ import annotations
 
 from typing import Any
 
+from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.core import HomeAssistant
 
 from .coordinator import RefossConfigEntry
 from .refoss_ha.controller.electricity import ElectricityXMix
 from .refoss_ha.controller.em_rpc import EmRpcMix
 from .refoss_ha.controller.switch_rpc import SwitchRpcMix
+
+TO_REDACT = {"inner_ip", "mac"}
 
 
 async def async_get_config_entry_diagnostics(
@@ -37,7 +40,10 @@ async def async_get_config_entry_diagnostics(
     elif isinstance(device, SwitchRpcMix):
         raw_data["switch_status"] = device.switch_status
 
-    return {
-        "device_info": device_info,
-        "raw_data": raw_data,
-    }
+    return async_redact_data(
+        {
+            "device_info": device_info,
+            "raw_data": raw_data,
+        },
+        TO_REDACT,
+    )
