@@ -9,6 +9,10 @@ _LOGGER: Logger = getLogger(__package__)
 DISCOVERY_TIMEOUT = 8
 UPDATE_INTERVAL = "update_interval"
 
+CONF_LOG_LEVEL = "log_level"
+LOG_LEVEL_DEFAULT = "WARNING"
+LOG_LEVEL_OPTIONS = ["DEBUG", "INFO", "WARNING", "ERROR"]
+
 
 DOMAIN = "refoss_lan"
 

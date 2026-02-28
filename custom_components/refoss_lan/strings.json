@@ -35,6 +35,20 @@
       "firmware_not_fully_supported": "Device not fully supported. Please contact Refoss support"
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Refoss LAN Options",
+        "description": "Configure logging options for this device.",
+        "data": {
+          "log_level": "Log level"
+        },
+        "data_description": {
+          "log_level": "Set the logging verbosity for this integration. Use DEBUG to see detailed diagnostic messages."
+        }
+      }
+    }
+  },
   "entity": {
     "sensor": {
       "power": {
