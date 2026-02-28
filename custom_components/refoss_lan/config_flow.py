@@ -126,6 +126,8 @@ class RefossOptionsFlowHandler(OptionsFlow):
             return self.async_create_entry(data=user_input)
 
         current_level = self.config_entry.options.get(CONF_LOG_LEVEL, LOG_LEVEL_DEFAULT)
+        if current_level not in LOG_LEVEL_OPTIONS:
+            current_level = LOG_LEVEL_DEFAULT
         schema = vol.Schema(
             {
                 vol.Required(CONF_LOG_LEVEL, default=current_level): vol.In(

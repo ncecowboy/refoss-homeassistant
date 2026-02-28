@@ -24,16 +24,21 @@ PLATFORMS: Final = [
 ]
 
 
+def _get_entry_logger(config_entry: RefossConfigEntry) -> logging.Logger:
+    """Return the per-entry child logger for a config entry."""
+    return logging.getLogger(f"{_LOGGER.name}.{config_entry.entry_id}")
+
+
 def _apply_log_level(config_entry: RefossConfigEntry) -> None:
-    """Apply the configured log level to the integration logger."""
+    """Apply the configured log level to the per-entry child logger."""
+    entry_logger = _get_entry_logger(config_entry)
     level_name = config_entry.options.get(CONF_LOG_LEVEL, LOG_LEVEL_DEFAULT)
     if level_name not in LOG_LEVEL_OPTIONS:
         _LOGGER.warning(
             "Invalid log level '%s', falling back to %s", level_name, LOG_LEVEL_DEFAULT
         )
         level_name = LOG_LEVEL_DEFAULT
-    level = getattr(logging, level_name)
-    _LOGGER.setLevel(level)
+    entry_logger.setLevel(getattr(logging, level_name))
 
 
 async def async_setup_entry(
@@ -71,10 +76,15 @@ async def async_setup_entry(
         )
         raise ConfigEntryNotReady("Unexpected error setting up device") from err
 
-    coordinator = RefossDataUpdateCoordinator(hass, config_entry, base_device)
+    _apply_log_level(config_entry)
+    coordinator = RefossDataUpdateCoordinator(
+        hass,
+        config_entry,
+        base_device,
+        _get_entry_logger(config_entry),
+    )
     await coordinator.async_config_entry_first_refresh()
     config_entry.runtime_data = coordinator
-    _apply_log_level(config_entry)
     config_entry.async_on_unload(
         config_entry.add_update_listener(_async_update_options)
     )
