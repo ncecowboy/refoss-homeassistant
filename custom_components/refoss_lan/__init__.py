@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Final
 
 from homeassistant.const import Platform, CONF_HOST
@@ -14,13 +15,30 @@ from .refoss_ha.device_rpc import DeviceInfoRpc
 from .refoss_ha.exceptions import DeviceTimeoutError, InvalidMessage, RefossError
 
 from .refoss_ha.controller.device import BaseDevice
-from .const import DOMAIN, _LOGGER
+from .const import CONF_LOG_LEVEL, DOMAIN, LOG_LEVEL_DEFAULT, LOG_LEVEL_OPTIONS, _LOGGER
 from .coordinator import RefossDataUpdateCoordinator, RefossConfigEntry
 
 PLATFORMS: Final = [
     Platform.SWITCH,
     Platform.SENSOR,
 ]
+
+
+def _get_entry_logger(config_entry: RefossConfigEntry) -> logging.Logger:
+    """Return the per-entry child logger for a config entry."""
+    return logging.getLogger(f"{_LOGGER.name}.{config_entry.entry_id}")
+
+
+def _apply_log_level(config_entry: RefossConfigEntry) -> None:
+    """Apply the configured log level to the per-entry child logger."""
+    entry_logger = _get_entry_logger(config_entry)
+    level_name = config_entry.options.get(CONF_LOG_LEVEL, LOG_LEVEL_DEFAULT)
+    if level_name not in LOG_LEVEL_OPTIONS:
+        _LOGGER.warning(
+            "Invalid log level '%s', falling back to %s", level_name, LOG_LEVEL_DEFAULT
+        )
+        level_name = LOG_LEVEL_DEFAULT
+    entry_logger.setLevel(getattr(logging, level_name))
 
 
 async def async_setup_entry(
@@ -58,12 +76,28 @@ async def async_setup_entry(
         )
         raise ConfigEntryNotReady("Unexpected error setting up device") from err
 
-    coordinator = RefossDataUpdateCoordinator(hass, config_entry, base_device)
+    _apply_log_level(config_entry)
+    coordinator = RefossDataUpdateCoordinator(
+        hass,
+        config_entry,
+        base_device,
+        _get_entry_logger(config_entry),
+    )
     await coordinator.async_config_entry_first_refresh()
     config_entry.runtime_data = coordinator
+    config_entry.async_on_unload(
+        config_entry.add_update_listener(_async_update_options)
+    )
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
 
     return True
+
+
+async def _async_update_options(
+    hass: HomeAssistant, config_entry: RefossConfigEntry
+) -> None:
+    """Handle options update."""
+    _apply_log_level(config_entry)
 
 
 async def async_unload_entry(

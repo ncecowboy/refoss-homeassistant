@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 
 from .refoss_ha.controller.device import BaseDevice
@@ -22,13 +23,18 @@ class RefossDataUpdateCoordinator(DataUpdateCoordinator[None]):
     config_entry: ConfigEntry
 
     def __init__(
-        self, hass: HomeAssistant, config_entry: ConfigEntry, device: BaseDevice
+        self,
+        hass: HomeAssistant,
+        config_entry: ConfigEntry,
+        device: BaseDevice,
+        logger: logging.Logger | None = None,
     ) -> None:
         """Initialize the data update coordinator."""
         update_interval = config_entry.data.get(UPDATE_INTERVAL, 10)
+        self._entry_logger = logger or _LOGGER
         super().__init__(
             hass,
-            _LOGGER,
+            self._entry_logger,
             config_entry=config_entry,
             name=f"{DOMAIN}-{device.device_info.dev_name}",
             update_interval=timedelta(seconds=update_interval),
@@ -45,13 +51,13 @@ class RefossDataUpdateCoordinator(DataUpdateCoordinator[None]):
             self._update_error_count()
             if self._error_count >= MAX_ERRORS:
                 self._update_success(False)
-            _LOGGER.debug("Device update timed out")
+            self._entry_logger.debug("Device update timed out")
             raise UpdateFailed("Timeout") from e
         except RefossError as e:
-            _LOGGER.debug(f"Device connection error: {e!r}")
+            self._entry_logger.debug(f"Device connection error: {e!r}")
             raise UpdateFailed("Device connect fail") from e
         except Exception as e:
-            _LOGGER.debug(f"Unexpected device update error: {e!r}")
+            self._entry_logger.debug(f"Unexpected device update error: {e!r}")
             raise UpdateFailed("Unexpected update error") from e
 
     def _update_success(self, success: bool) -> None:

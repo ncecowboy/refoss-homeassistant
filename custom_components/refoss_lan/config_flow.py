@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from __future__ import annotations
 import voluptuous as vol
 
 from typing import Any
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
+from homeassistant.core import callback
 
 from homeassistant.const import (
     CONF_HOST,
@@ -15,10 +15,15 @@ from homeassistant.const import (
 from .refoss_ha.discovery import Discovery
 from .refoss_ha.device_rpc import DeviceInfoRpc
 from .refoss_ha.exceptions import SocketError
-from .const import _LOGGER, UPDATE_INTERVAL
-
-
-from .const import DISCOVERY_TIMEOUT, DOMAIN
+from .const import (
+    _LOGGER,
+    CONF_LOG_LEVEL,
+    DISCOVERY_TIMEOUT,
+    DOMAIN,
+    LOG_LEVEL_DEFAULT,
+    LOG_LEVEL_OPTIONS,
+    UPDATE_INTERVAL,
+)
 
 
 class RefossConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -29,6 +34,12 @@ class RefossConfigFlow(ConfigFlow, domain=DOMAIN):
 
     host: str = ""
     update_interval = 10
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
+        """Create the options flow handler."""
+        return RefossOptionsFlowHandler()
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -102,6 +113,29 @@ class RefossConfigFlow(ConfigFlow, domain=DOMAIN):
             description_placeholders=description_placeholders,
             errors=errors,
         )
+
+
+class RefossOptionsFlowHandler(OptionsFlow):
+    """Handle Refoss options (log level)."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Manage the options."""
+        if user_input is not None:
+            return self.async_create_entry(data=user_input)
+
+        current_level = self.config_entry.options.get(CONF_LOG_LEVEL, LOG_LEVEL_DEFAULT)
+        if current_level not in LOG_LEVEL_OPTIONS:
+            current_level = LOG_LEVEL_DEFAULT
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_LOG_LEVEL, default=current_level): vol.In(
+                    LOG_LEVEL_OPTIONS
+                ),
+            }
+        )
+        return self.async_show_form(step_id="init", data_schema=schema)
 
 
 async def start_scan_device(host: str) -> dict | None:
