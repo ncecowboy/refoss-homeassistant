@@ -42,7 +42,7 @@ SENSORS: dict[str, tuple[RefossSensorEntityDescription, ...]] = {
     SENSOR_EM: (
         RefossSensorEntityDescription(
             key="power",
-            translation_key="power",
+            translation_key="em_power",
             device_class=SensorDeviceClass.POWER,
             state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=UnitOfPower.WATT,
@@ -52,7 +52,7 @@ SENSORS: dict[str, tuple[RefossSensorEntityDescription, ...]] = {
         ),
         RefossSensorEntityDescription(
             key="voltage",
-            translation_key="voltage",
+            translation_key="em_voltage",
             device_class=SensorDeviceClass.VOLTAGE,
             state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=UnitOfElectricPotential.MILLIVOLT,
@@ -62,7 +62,7 @@ SENSORS: dict[str, tuple[RefossSensorEntityDescription, ...]] = {
         ),
         RefossSensorEntityDescription(
             key="current",
-            translation_key="current",
+            translation_key="em_current",
             device_class=SensorDeviceClass.CURRENT,
             state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=UnitOfElectricCurrent.MILLIAMPERE,
@@ -72,7 +72,7 @@ SENSORS: dict[str, tuple[RefossSensorEntityDescription, ...]] = {
         ),
         RefossSensorEntityDescription(
             key="factor",
-            translation_key="power_factor",
+            translation_key="em_power_factor",
             device_class=SensorDeviceClass.POWER_FACTOR,
             state_class=SensorStateClass.MEASUREMENT,
             suggested_display_precision=2,
@@ -80,7 +80,7 @@ SENSORS: dict[str, tuple[RefossSensorEntityDescription, ...]] = {
         ),
         RefossSensorEntityDescription(
             key="energy",
-            translation_key="this_month_energy",
+            translation_key="em_this_month_energy",
             device_class=SensorDeviceClass.ENERGY,
             state_class=SensorStateClass.TOTAL_INCREASING,
             native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
@@ -90,7 +90,7 @@ SENSORS: dict[str, tuple[RefossSensorEntityDescription, ...]] = {
         ),
         RefossSensorEntityDescription(
             key="energy_returned",
-            translation_key="this_month_energy_returned",
+            translation_key="em_this_month_energy_returned",
             device_class=SensorDeviceClass.ENERGY,
             state_class=SensorStateClass.TOTAL_INCREASING,
             native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
@@ -100,7 +100,7 @@ SENSORS: dict[str, tuple[RefossSensorEntityDescription, ...]] = {
         ),
         RefossSensorEntityDescription(
             key="today_energy",
-            translation_key="today_energy",
+            translation_key="em_today_energy",
             device_class=SensorDeviceClass.ENERGY,
             state_class=SensorStateClass.TOTAL,
             native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
@@ -110,7 +110,7 @@ SENSORS: dict[str, tuple[RefossSensorEntityDescription, ...]] = {
         ),
         RefossSensorEntityDescription(
             key="week_energy",
-            translation_key="week_energy",
+            translation_key="em_week_energy",
             device_class=SensorDeviceClass.ENERGY,
             state_class=SensorStateClass.TOTAL,
             native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
@@ -123,7 +123,7 @@ SENSORS: dict[str, tuple[RefossSensorEntityDescription, ...]] = {
     SENSOR_EM_RPC: (
         RefossSensorEntityDescription(
             key="power",
-            translation_key="power",
+            translation_key="em_power",
             device_class=SensorDeviceClass.POWER,
             state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=UnitOfPower.WATT,
@@ -133,7 +133,7 @@ SENSORS: dict[str, tuple[RefossSensorEntityDescription, ...]] = {
         ),
         RefossSensorEntityDescription(
             key="voltage",
-            translation_key="voltage",
+            translation_key="em_voltage",
             device_class=SensorDeviceClass.VOLTAGE,
             state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=UnitOfElectricPotential.MILLIVOLT,
@@ -143,7 +143,7 @@ SENSORS: dict[str, tuple[RefossSensorEntityDescription, ...]] = {
         ),
         RefossSensorEntityDescription(
             key="current",
-            translation_key="current",
+            translation_key="em_current",
             device_class=SensorDeviceClass.CURRENT,
             state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=UnitOfElectricCurrent.MILLIAMPERE,
@@ -153,7 +153,7 @@ SENSORS: dict[str, tuple[RefossSensorEntityDescription, ...]] = {
         ),
         RefossSensorEntityDescription(
             key="factor",
-            translation_key="power_factor",
+            translation_key="em_power_factor",
             device_class=SensorDeviceClass.POWER_FACTOR,
             state_class=SensorStateClass.MEASUREMENT,
             suggested_display_precision=2,
@@ -162,7 +162,7 @@ SENSORS: dict[str, tuple[RefossSensorEntityDescription, ...]] = {
         ),
         RefossSensorEntityDescription(
             key="energy",
-            translation_key="this_month_energy",
+            translation_key="em_this_month_energy",
             device_class=SensorDeviceClass.ENERGY,
             state_class=SensorStateClass.TOTAL_INCREASING,
             native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
@@ -244,11 +244,21 @@ async def async_setup_entry(
         descriptions: tuple[RefossSensorEntityDescription, ...] = SENSORS.get(
             sensor_type, ()
         )
+        device_type = device.device_type
+        # Only create per-channel sub-devices for device types that have a known
+        # channel name mapping; this ensures the parent device registered in
+        # __init__.py always exists before sub-devices reference it via via_device.
+        use_sub_devices = device_type in CHANNEL_DISPLAY_NAME
         async_add_entities(
             RefossSensor(
                 coordinator=coordinator,
                 channel=channel,
                 description=description,
+                channel_name=(
+                    CHANNEL_DISPLAY_NAME.get(device_type, {}).get(channel, str(channel))
+                    if use_sub_devices
+                    else None
+                ),
             )
             for channel in device.channels
             for description in descriptions
@@ -267,14 +277,16 @@ class RefossSensor(RefossEntity, SensorEntity):
         coordinator: RefossDataUpdateCoordinator,
         channel: int,
         description: RefossSensorEntityDescription,
+        channel_name: str | None = None,
     ) -> None:
         """Init Refoss sensor."""
-        super().__init__(coordinator, channel)
+        super().__init__(coordinator, channel, channel_name)
         self.entity_description = description
         self._attr_unique_id = f"{super().unique_id}{description.key}"
-        device_type = coordinator.device.device_type
-        channel_name = CHANNEL_DISPLAY_NAME.get(device_type, {}).get(channel, str(channel))
-        self._attr_translation_placeholders = {"channel_name": channel_name}
+        if channel_name is None:
+            device_type = coordinator.device.device_type
+            name = CHANNEL_DISPLAY_NAME.get(device_type, {}).get(channel, str(channel))
+            self._attr_translation_placeholders = {"channel_name": name}
 
     @property
     def native_value(self) -> StateType:
