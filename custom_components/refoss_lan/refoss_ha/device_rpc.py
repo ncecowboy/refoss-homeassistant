@@ -82,6 +82,11 @@ class DeviceInfoRpc:
                     channels=[1],
                 )
         except Exception:
+            LOGGER.debug(
+                "RPC probe to %s failed; falling back to non-RPC discovery",
+                ip,
+                exc_info=True,
+            )
             return None
 
     # ------------------------------------------------------------------
@@ -96,20 +101,20 @@ class DeviceInfoRpc:
         Returns the parsed JSON response dict, or *None* on error.
         """
         url = f"http://{self.inner_ip}/rpc/{method}"
+        query_params: dict[str, str] | None = None
         if params:
-            parts = []
+            query_params = {}
             for k, v in params.items():
                 if isinstance(v, bool):
-                    parts.append(f"{k}={'true' if v else 'false'}")
+                    query_params[k] = "true" if v else "false"
                 elif isinstance(v, (dict, list)):
-                    parts.append(f"{k}={json.dumps(v)}")
+                    query_params[k] = json.dumps(v, separators=(",", ":"))
                 else:
-                    parts.append(f"{k}={v}")
-            url += "?" + "&".join(parts)
+                    query_params[k] = str(v)
 
         try:
             async with ClientSession() as session, session.get(
-                url, timeout=ClientTimeout(total=timeout)
+                url, params=query_params, timeout=ClientTimeout(total=timeout)
             ) as response:
                 return await response.json(content_type=None)
         except asyncio.TimeoutError:

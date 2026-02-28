@@ -86,11 +86,18 @@ async def async_build_rpc_device(device_info: DeviceInfoRpc) -> BaseDevice:
             res = await device_info.async_execute_rpc_cmd("Refoss.Config.Get")
             if res is not None:
                 data = res.get("result", res)
-                switch_ids = sorted(
-                    int(k.split(":")[1])
-                    for k in data
-                    if k.startswith("switch:")
-                )
+                raw_keys = data.keys() if isinstance(data, dict) else data
+                switch_ids: list[int] = []
+                for k in raw_keys:
+                    if not isinstance(k, str):
+                        continue
+                    if not k.startswith("switch:"):
+                        continue
+                    parts = k.split(":", 1)
+                    if len(parts) != 2 or not parts[1].isdigit():
+                        continue
+                    switch_ids.append(int(parts[1]))
+                switch_ids = sorted(switch_ids)
                 if switch_ids:
                     device_info.channels = switch_ids
         except Exception as exc:  # noqa: BLE001

@@ -53,10 +53,10 @@ async def async_setup_entry(
         )
         raise ConfigEntryNotReady(repr(err)) from err
     except Exception as err:
-        _LOGGER.debug(
-            "Unexpected error setting up %s: %r", config_entry.title, err
+        _LOGGER.exception(
+            "Unexpected error setting up %s", config_entry.title
         )
-        raise ConfigEntryNotReady(str(err)) from err
+        raise ConfigEntryNotReady("Unexpected error setting up device") from err
 
     coordinator = RefossDataUpdateCoordinator(hass, config_entry, base_device)
     await coordinator.async_config_entry_first_refresh()
