@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from functools import lru_cache
 from typing import Optional
 
 from .controller.device import BaseDevice
@@ -40,7 +39,6 @@ async def async_build_base_device(device_info: DeviceInfo) -> Optional[BaseDevic
 _dynamic_types: dict[str, type] = {}
 
 
-@lru_cache(maxsize=512)
 def _lookup_cached_type(
     device_type: str, hardware_version: str, firmware_version: str
 ) -> Optional[type]:

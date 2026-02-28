@@ -45,6 +45,11 @@ async def async_setup_entry(
             f"Device {config_entry.title} network connection failed, please check the network and try again"
         )
         raise ConfigEntryNotReady(repr(err)) from err
+    except Exception as err:
+        _LOGGER.debug(
+            "Unexpected error setting up %s: %r", config_entry.title, err
+        )
+        raise ConfigEntryNotReady(str(err)) from err
 
     coordinator = RefossDataUpdateCoordinator(hass, config_entry, base_device)
     await coordinator.async_config_entry_first_refresh()

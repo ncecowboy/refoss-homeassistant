@@ -149,7 +149,7 @@ class RefossSensor(RefossEntity, SensorEntity):
         self.entity_description = description
         self._attr_unique_id = f"{super().unique_id}{description.key}"
         device_type = coordinator.device.device_type
-        channel_name = CHANNEL_DISPLAY_NAME[device_type][channel]
+        channel_name = CHANNEL_DISPLAY_NAME.get(device_type, {}).get(channel, str(channel))
         self._attr_translation_placeholders = {"channel_name": channel_name}
 
     @property

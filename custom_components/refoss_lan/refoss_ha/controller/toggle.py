@@ -36,7 +36,7 @@ class ToggleXMix(BaseDevice):
 
         if res is not None:
             data = res.get("payload", {})
-            payload = data["togglex"]
+            payload = data.get("togglex")
             if payload is None:
                 _LOGGER.debug(
                     f"{data} could not find 'togglex' attribute in push notification data"
