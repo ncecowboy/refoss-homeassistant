@@ -102,7 +102,7 @@ SENSORS: dict[str, tuple[RefossSensorEntityDescription, ...]] = {
             key="today_energy",
             translation_key="today_energy",
             device_class=SensorDeviceClass.ENERGY,
-            state_class=SensorStateClass.TOTAL_INCREASING,
+            state_class=SensorStateClass.TOTAL,
             native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
             suggested_display_precision=2,
             subkey="today",
@@ -112,7 +112,7 @@ SENSORS: dict[str, tuple[RefossSensorEntityDescription, ...]] = {
             key="week_energy",
             translation_key="week_energy",
             device_class=SensorDeviceClass.ENERGY,
-            state_class=SensorStateClass.TOTAL_INCREASING,
+            state_class=SensorStateClass.TOTAL,
             native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
             suggested_display_precision=2,
             subkey="week",
@@ -226,6 +226,11 @@ async def async_setup_entry(
     coordinator = config_entry.runtime_data
     device = coordinator.device
     if not isinstance(device, (ElectricityXMix, EmRpcMix, SwitchRpcMix)):
+        _LOGGER.warning(
+            "Unrecognised device class %s for %s; no sensors will be created",
+            type(device).__name__,
+            device.device_type,
+        )
         return
 
     def init_device(device: ElectricityXMix | EmRpcMix | SwitchRpcMix):
@@ -234,15 +239,8 @@ async def async_setup_entry(
             sensor_type = SENSOR_EM
         elif isinstance(device, EmRpcMix):
             sensor_type = SENSOR_EM_RPC
-        elif isinstance(device, SwitchRpcMix):
-            sensor_type = SENSOR_SWITCH_RPC
         else:
-            _LOGGER.warning(
-                "Unrecognised device class %s for %s; no sensors will be created",
-                type(device).__name__,
-                device.device_type,
-            )
-            sensor_type = ""
+            sensor_type = SENSOR_SWITCH_RPC
         descriptions: tuple[RefossSensorEntityDescription, ...] = SENSORS.get(
             sensor_type, ()
         )
