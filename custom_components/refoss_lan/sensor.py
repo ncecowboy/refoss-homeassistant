@@ -108,7 +108,7 @@ SENSORS: dict[str, tuple[RefossSensorEntityDescription, ...]] = {
             fn=lambda x: abs(x) if x < 0 else 0,
         ),
     ),
-    # New RPC protocol – Em.Status.Get returns SI units (A, V, W, kWh)
+    # New RPC protocol – Em.Status.Get returns milli-units (mA, mV, mW; pf ×1000; kWh for energy)
     SENSOR_EM_RPC: (
         RefossSensorEntityDescription(
             key="power",
@@ -118,14 +118,16 @@ SENSORS: dict[str, tuple[RefossSensorEntityDescription, ...]] = {
             native_unit_of_measurement=UnitOfPower.WATT,
             suggested_display_precision=2,
             subkey="power",
+            fn=lambda x: x / 1000.0,
         ),
         RefossSensorEntityDescription(
             key="voltage",
             translation_key="voltage",
             device_class=SensorDeviceClass.VOLTAGE,
             state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+            native_unit_of_measurement=UnitOfElectricPotential.MILLIVOLT,
             suggested_display_precision=2,
+            suggested_unit_of_measurement=UnitOfElectricPotential.VOLT,
             subkey="voltage",
         ),
         RefossSensorEntityDescription(
@@ -133,8 +135,9 @@ SENSORS: dict[str, tuple[RefossSensorEntityDescription, ...]] = {
             translation_key="current",
             device_class=SensorDeviceClass.CURRENT,
             state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+            native_unit_of_measurement=UnitOfElectricCurrent.MILLIAMPERE,
             suggested_display_precision=3,
+            suggested_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
             subkey="current",
         ),
         RefossSensorEntityDescription(
@@ -143,7 +146,8 @@ SENSORS: dict[str, tuple[RefossSensorEntityDescription, ...]] = {
             device_class=SensorDeviceClass.POWER_FACTOR,
             state_class=SensorStateClass.MEASUREMENT,
             suggested_display_precision=2,
-            subkey="pf",
+            subkey="power_factor",
+            fn=lambda x: x / 1000.0,
         ),
         RefossSensorEntityDescription(
             key="energy",

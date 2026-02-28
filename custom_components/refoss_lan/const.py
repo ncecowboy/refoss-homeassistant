@@ -16,7 +16,7 @@ MAX_ERRORS = 4
 
 # Energy monitoring sensor type keys
 SENSOR_EM = "em"
-# New RPC protocol: Em.Status.Get values are in SI units (A, V, W, kWh)
+# New RPC protocol: Em.Status.Get values are in milli-units (mA, mV, mW; pf ×1000; kWh for energy)
 SENSOR_EM_RPC = "em_rpc"
 # New RPC protocol: Switch.Status.Get energy values (mW, mV, mA, Wh)
 SENSOR_SWITCH_RPC = "switch_rpc"

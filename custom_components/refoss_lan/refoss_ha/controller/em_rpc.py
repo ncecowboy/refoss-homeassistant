@@ -17,12 +17,12 @@ class EmRpcMix(BaseDevice):
     Wraps the ``Em.Status.Get`` RPC method and exposes the same
     ``get_value(channel, subkey)`` interface as :class:`ElectricityXMix`.
 
-    Values returned by ``Em.Status.Get`` use SI units:
-    - current:  amperes (float)
-    - voltage:  volts (float)
-    - power:    watts (float)
-    - pf:       dimensionless (0–1, float)
-    - month_energy:     kilowatt-hours (float)
+    Values returned by ``Em.Status.Get`` use milli-units:
+    - current:      milliamps (mA); divide by 1000 for amperes
+    - voltage:      millivolts (mV); divide by 1000 for volts
+    - power:        milliwatts (mW); divide by 1000 for watts
+    - power_factor: milli-units (e.g. 992 = 0.992); divide by 1000 for dimensionless 0–1
+    - month_energy: kilowatt-hours (kWh, not milli-scaled)
     """
 
     def __init__(self, device: DeviceInfoRpc) -> None:
