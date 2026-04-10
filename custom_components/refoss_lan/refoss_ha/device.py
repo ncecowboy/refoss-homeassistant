@@ -11,7 +11,6 @@ import string
 import time
 
 LOGGER = logging.getLogger(__name__)
-from typing import Union
 
 from aiohttp import ClientSession, ClientTimeout
 
@@ -61,7 +60,7 @@ class DeviceInfo(BaseDictPayload):
         self,
         device_uuid: str,
         method: str,
-        namespace: Union[Namespace, str],
+        namespace: Namespace | str,
         payload: dict,
         timeout: int = 20,
     ):
@@ -105,7 +104,7 @@ class DeviceInfo(BaseDictPayload):
     def _build_mqtt_message(
         self,
         method: str,
-        namespace: Union[Namespace, str],
+        namespace: Namespace | str,
         payload: dict,
         destination_device_uuid: str,
     ):

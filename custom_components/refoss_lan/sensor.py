@@ -26,6 +26,7 @@ from .entity import RefossEntity
 from .refoss_ha.controller.electricity import ElectricityXMix
 from .refoss_ha.controller.em_rpc import EmRpcMix
 from .refoss_ha.controller.switch_rpc import SwitchRpcMix
+from .refoss_ha.controller.toggle import ToggleXMix
 from .coordinator import RefossDataUpdateCoordinator, RefossConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
@@ -225,6 +226,9 @@ async def async_setup_entry(
     """Set up the Refoss device from a config entry."""
     coordinator = config_entry.runtime_data
     device = coordinator.device
+    if isinstance(device, ToggleXMix):
+        # Switch-only device; no energy sensors to create.
+        return
     if not isinstance(device, (ElectricityXMix, EmRpcMix, SwitchRpcMix)):
         _LOGGER.warning(
             "Unrecognised device class %s for %s; no sensors will be created",

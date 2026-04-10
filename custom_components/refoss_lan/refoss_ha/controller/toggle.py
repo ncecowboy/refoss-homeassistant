@@ -1,7 +1,6 @@
 """ToggleXMix."""
 
 import logging
-import traceback
 
 from ..enums import Namespace
 from ..device import DeviceInfo

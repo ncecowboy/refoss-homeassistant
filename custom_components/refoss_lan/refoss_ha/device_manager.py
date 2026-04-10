@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from .controller.device import BaseDevice
 from .controller.toggle import ToggleXMix
@@ -23,7 +22,7 @@ _ABILITY_MATRIX = {
 }
 
 
-async def async_build_base_device(device_info: DeviceInfo) -> Optional[BaseDevice]:
+async def async_build_base_device(device_info: DeviceInfo) -> BaseDevice | None:
     """Build base device."""
     res = await device_info.async_execute_cmd(
         device_uuid=device_info.uuid,
@@ -118,7 +117,7 @@ _dynamic_types: dict[str, type] = {}
 
 def _lookup_cached_type(
     device_type: str, hardware_version: str, firmware_version: str
-) -> Optional[type]:
+) -> type | None:
     """Lookup."""
     lookup_string = _caclulate_device_type_name(
         device_type, hardware_version, firmware_version
