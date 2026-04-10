@@ -1,7 +1,6 @@
 """ToggleXMix."""
 
 import logging
-import traceback
 
 from ..enums import Namespace
 from ..device import DeviceInfo
@@ -39,7 +38,8 @@ class ToggleXMix(BaseDevice):
             payload = data.get("togglex")
             if payload is None:
                 _LOGGER.debug(
-                    f"{data} could not find 'togglex' attribute in push notification data"
+                    "%s could not find 'togglex' attribute in push notification data",
+                    data,
                 )
 
             elif isinstance(payload, list):

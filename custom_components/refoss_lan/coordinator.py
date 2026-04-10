@@ -54,10 +54,10 @@ class RefossDataUpdateCoordinator(DataUpdateCoordinator[None]):
             self._entry_logger.debug("Device update timed out")
             raise UpdateFailed("Timeout") from e
         except RefossError as e:
-            self._entry_logger.debug(f"Device connection error: {e!r}")
+            self._entry_logger.debug("Device connection error: %r", e)
             raise UpdateFailed("Device connect fail") from e
         except Exception as e:
-            self._entry_logger.debug(f"Unexpected device update error: {e!r}")
+            self._entry_logger.debug("Unexpected device update error: %r", e)
             raise UpdateFailed("Unexpected update error") from e
 
     def _update_success(self, success: bool) -> None:

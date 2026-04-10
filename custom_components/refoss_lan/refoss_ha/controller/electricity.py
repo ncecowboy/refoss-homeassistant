@@ -46,7 +46,8 @@ class ElectricityXMix(BaseDevice):
             payload = data.get("electricity")
             if payload is None:
                 _LOGGER.debug(
-                    f"{data} could not find 'electricity' attribute in push notification data"
+                    "%s could not find 'electricity' attribute in push notification data",
+                    data,
                 )
 
             elif isinstance(payload, list):

@@ -56,9 +56,9 @@ class Discovery(asyncio.DatagramProtocol):
         """Handle incoming datagram messages."""
         json_str = format(data.decode("utf-8"))
         data_dict = json.loads(json_str)
-        _LOGGER.debug(f"Discovered device {data_dict}")
+        _LOGGER.debug("Discovered device %s", data_dict)
         if "channels" in data_dict and "uuid" in data_dict:
-            _LOGGER.info(f"Discovered device {data_dict['devName']}")
+            _LOGGER.info("Discovered device %s", data_dict['devName'])
             uuid = data_dict["uuid"]
             if self.device_info and (uuid in self.device_info):
                 return

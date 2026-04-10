@@ -10,14 +10,13 @@ import random
 import string
 import time
 
-LOGGER = logging.getLogger(__name__)
-from typing import Union
-
 from aiohttp import ClientSession, ClientTimeout
 
 from .enums import Namespace
 from .util import BaseDictPayload
 from .exceptions import DeviceTimeoutError, RefossError
+
+LOGGER = logging.getLogger(__name__)
 
 
 class DeviceInfo(BaseDictPayload):
@@ -61,7 +60,7 @@ class DeviceInfo(BaseDictPayload):
         self,
         device_uuid: str,
         method: str,
-        namespace: Union[Namespace, str],
+        namespace: Namespace | str,
         payload: dict,
         timeout: int = 20,
     ):
@@ -92,20 +91,27 @@ class DeviceInfo(BaseDictPayload):
         except asyncio.TimeoutError:
             namespace_str = namespace.value if isinstance(namespace, Namespace) else namespace
             LOGGER.debug(
-                f"Http timeoutError,ip:{self.inner_ip}, device_type:{self.device_type}, namespace:{namespace_str}"
+                "Http timeoutError, ip:%s, device_type:%s, namespace:%s",
+                self.inner_ip,
+                self.device_type,
+                namespace_str,
             )
             raise DeviceTimeoutError
         except Exception as e:
             namespace_str = namespace.value if isinstance(namespace, Namespace) else namespace
             LOGGER.debug(
-                f"Http fail: {e}, ip:{self.inner_ip}, device_type:{self.device_type},namespace:{namespace_str}"
+                "Http fail: %s, ip:%s, device_type:%s, namespace:%s",
+                e,
+                self.inner_ip,
+                self.device_type,
+                namespace_str,
             )
             raise RefossError("Device connection failed") from e
 
     def _build_mqtt_message(
         self,
         method: str,
-        namespace: Union[Namespace, str],
+        namespace: Namespace | str,
         payload: dict,
         destination_device_uuid: str,
     ):
