@@ -163,7 +163,7 @@ async def start_scan_device(host: str) -> dict | None:
     except SocketError as err:
         _LOGGER.debug("Failed socket scan on %s: %r", host, err, exc_info=True)
     except Exception as e:
-        _LOGGER.debug(f"Unexpected error scanning {host}: {e!r}", exc_info=True)
+        _LOGGER.debug("Unexpected error scanning %s: %r", host, e, exc_info=True)
     finally:
         discovery_server.closeDiscovery()
     return device

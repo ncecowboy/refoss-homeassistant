@@ -18,7 +18,7 @@ from homeassistant.const import (
     UnitOfPower,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
 from .const import CHANNEL_DISPLAY_NAME, SENSOR_EM, SENSOR_EM_RPC, SENSOR_SWITCH_RPC
@@ -220,7 +220,7 @@ SENSORS: dict[str, tuple[RefossSensorEntityDescription, ...]] = {
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: RefossConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the Refoss device from a config entry."""
     coordinator = config_entry.runtime_data

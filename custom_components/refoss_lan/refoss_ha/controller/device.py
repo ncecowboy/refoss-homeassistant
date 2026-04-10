@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Union
 
 from ..enums import Namespace
 from ..device import DeviceInfo
@@ -54,7 +53,7 @@ class BaseDevice:
         self,
         device_uuid: str,
         method: str,
-        namespace: Union[Namespace, str],
+        namespace: Namespace | str,
         payload: dict,
         timeout: int = 5,
     ):
